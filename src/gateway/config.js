@@ -1,0 +1,163 @@
+const fs = require("fs");
+const path = require("path");
+
+const DEFAULT_CONFIG = {
+  port: 3377,
+  dashboard_port: 3378,
+  strategy: "auto",
+  validation_models: 3,
+  fallback_timeout: 5000,
+  providers: {
+    gemini: {
+      enabled: true,
+      api_key: process.env.GEMINI_API_KEY || "",
+      base_url: "https://generativelanguage.googleapis.com/v1beta",
+      models: ["gemini-2.5-flash"],
+      priority: 1,
+      rate_limit: { rpm: 15, rpd: 1500, tpm: 1000000 },
+    },
+    groq: {
+      enabled: true,
+      api_key: process.env.GROQ_API_KEY || "",
+      base_url: "https://api.groq.com/openai/v1",
+      models: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+      priority: 2,
+      rate_limit: { rpm: 30, rpd: 1000, tpm: 6000 },
+    },
+    cerebras: {
+      enabled: true,
+      api_key: process.env.CEREBRAS_API_KEY || "",
+      base_url: "https://api.cerebras.ai/v1",
+      models: ["llama-3.3-70b"],
+      priority: 3,
+      rate_limit: { rpm: 30, rpd: 1000, tpd: 1000000 },
+    },
+    openrouter: {
+      enabled: true,
+      api_key: process.env.OPENROUTER_API_KEY || "",
+      base_url: "https://openrouter.ai/api/v1",
+      models: ["qwen/qwen3-coder:free", "meta-llama/llama-3.3-70b:free"],
+      priority: 4,
+      rate_limit: { rpm: 20 },
+    },
+    mistral: {
+      enabled: true,
+      api_key: process.env.MISTRAL_API_KEY || "",
+      base_url: "https://api.mistral.ai/v1",
+      models: ["mistral-small-latest"],
+      priority: 5,
+      rate_limit: { rpm: 30, tpm: 50000 },
+    },
+    github: {
+      enabled: true,
+      api_key: process.env.GITHUB_TOKEN || "",
+      base_url: "https://models.inference.ai.azure.com",
+      models: ["meta-llama-3.1-8b-instruct"],
+      priority: 6,
+      rate_limit: { rpm: 15 },
+    },
+    nvidia: {
+      enabled: true,
+      api_key: process.env.NVIDIA_API_KEY || "",
+      base_url: "https://integrate.api.nvidia.com/v1",
+      models: ["meta/llama-3.1-405b-instruct"],
+      priority: 7,
+      rate_limit: { rpm: 10 },
+    },
+    cloudflare: {
+      enabled: true,
+      api_key: process.env.CLOUDFLARE_API_KEY || "",
+      account_id: process.env.CLOUDFLARE_ACCOUNT_ID || "",
+      base_url: "https://api.cloudflare.com/client/v4/accounts",
+      models: ["@cf/meta/llama-3.2-3b-instruct"],
+      priority: 8,
+      rate_limit: { neurons_per_day: 10000 },
+    },
+    cohere: {
+      enabled: true,
+      api_key: process.env.COHERE_API_KEY || "",
+      base_url: "https://api.cohere.com/v1",
+      models: ["command-r-plus"],
+      priority: 9,
+      rate_limit: { rpd: 100 },
+    },
+    sambanova: {
+      enabled: true,
+      api_key: process.env.SAMBANOVA_API_KEY || "",
+      base_url: "https://api.sambanova.ai/v1",
+      models: ["Meta-Llama-3.1-405B-Instruct"],
+      priority: 10,
+      rate_limit: { rpm: 20, tpd: 200000 },
+    },
+    huggingface: {
+      enabled: true,
+      api_key: process.env.HF_API_KEY || "",
+      base_url: "https://api-inference.huggingface.co/v1",
+      models: ["meta-llama/Llama-3.3-70B-Instruct"],
+      priority: 11,
+      rate_limit: { rpd: 2000 },
+    },
+    deepseek: {
+      enabled: true,
+      api_key: process.env.DEEPSEEK_API_KEY || "",
+      base_url: "https://api.deepseek.com/v1",
+      models: ["deepseek-chat"],
+      priority: 12,
+      rate_limit: { rpm: 30 },
+    },
+  },
+};
+
+function loadConfig() {
+  const configPath = path.join(process.cwd(), "freecodeai.config.yml");
+  
+  if (fs.existsSync(configPath)) {
+    try {
+      // Simple YAML-like parser for basic config
+      const raw = fs.readFileSync(configPath, "utf-8");
+      const parsed = parseSimpleYaml(raw);
+      return deepMerge(DEFAULT_CONFIG, parsed);
+    } catch (err) {
+      console.warn("[Config] Failed to parse config file, using defaults:", err.message);
+    }
+  }
+
+  // Filter out providers without API keys
+  const config = { ...DEFAULT_CONFIG };
+  for (const [name, provider] of Object.entries(config.providers)) {
+    if (!provider.api_key) {
+      provider.enabled = false;
+    }
+  }
+
+  return config;
+}
+
+function parseSimpleYaml(text) {
+  // Minimal YAML parser for flat config values
+  const result = {};
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const match = trimmed.match(/^(\w+):\s*(.+)$/);
+    if (match) {
+      const [, key, value] = match;
+      result[key] = isNaN(value) ? value : Number(value);
+    }
+  }
+  return result;
+}
+
+function deepMerge(target, source) {
+  const result = { ...target };
+  for (const key of Object.keys(source)) {
+    if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
+      result[key] = deepMerge(result[key] || {}, source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
+module.exports = { loadConfig, DEFAULT_CONFIG };

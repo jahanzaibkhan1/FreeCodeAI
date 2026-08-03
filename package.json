@@ -1,0 +1,27 @@
+{
+  "name": "freecodeai",
+  "version": "1.0.0",
+  "description": "One command. 15+ free AI models. Auto-fallback. Code validation across models.",
+  "main": "src/gateway/server.js",
+  "bin": {
+    "freecodeai": "./cli/index.js"
+  },
+  "scripts": {
+    "start": "node src/gateway/server.js",
+    "dev": "node --watch src/gateway/server.js",
+    "setup": "node cli/setup.js",
+    "dashboard": "node src/dashboard/server.js",
+    "validate": "node src/validator/validate.js",
+    "test": "node --test tests/"
+  },
+  "keywords": [
+    "ai", "llm", "free", "coding", "openai", "gateway",
+    "auto-fallback", "code-validation", "groq", "gemini",
+    "cerebras", "mistral", "vscode", "cline", "cursor"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  freecodeai:
+    build: .
+    container_name: freecodeai
+    ports:
+      - "3377:3377"
+      - "3378:3378"
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3377/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
