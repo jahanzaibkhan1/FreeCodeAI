@@ -21,6 +21,8 @@
   <img src="docs/demo.gif" width="720" alt="FreeCodeAI demo — gateway startup, auto-fallback, and code validation"/>
 </p>
 
+> **Demo GIF coming soon.** Run `npx freecodeai setup && npx freecodeai start` to see it live.
+
 ---
 
 ## The Problem
@@ -183,6 +185,14 @@ cd freecodeai && npm install && npm run dev
 - [ ] Auto-discovery from cheahjs/free-llm-api-resources
 - [ ] Token usage analytics
 - [ ] Team mode (shared provider pool)
+
+## The Story
+
+I'm a QA Automation Engineer from Pakistan. AI coding tools were transforming how fast people ship software — but the good ones cost $20–$200/month, and the free tiers ran out mid-session constantly.
+
+I got tired of switching tabs, re-pasting prompts, losing context. Every provider has free limits. Nobody had connected them. So I spent my weekends building this.
+
+If you're a developer who can't justify $200/month for AI tools, this is for you.
 
 ## License
 
