@@ -6,6 +6,7 @@ on:
     paths:
       - docs/demo.tape
       - scripts/demo-*.js
+      - .github/workflows/demo.yml
 
 jobs:
   vhs:
@@ -20,25 +21,15 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install VHS dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
-          # ttyd — VHS needs this to render the terminal
-          wget -q "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" \
-               -O /usr/local/bin/ttyd
-          chmod +x /usr/local/bin/ttyd
-          ttyd --version
-
       - name: Install VHS
         run: |
-          VHS_TAG=$(curl -s https://api.github.com/repos/charmbracelet/vhs/releases/latest \
-            | jq -r '.tag_name')
-          VHS_VER=${VHS_TAG#v}
-          curl -sL "https://github.com/charmbracelet/vhs/releases/download/${VHS_TAG}/vhs_${VHS_VER}_Linux_x86_64.tar.gz" \
-            -o vhs.tar.gz
-          tar xzf vhs.tar.gz vhs
-          sudo mv vhs /usr/local/bin/vhs
+          sudo mkdir -p /etc/apt/keyrings
+          curl -fsSL https://repo.charm.sh/apt/gpg.key \
+            | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
+          echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" \
+            | sudo tee /etc/apt/sources.list.d/charm.list
+          sudo apt-get update -qq
+          sudo apt-get install -y vhs ffmpeg
           vhs --version
 
       - name: Generate demo GIF
