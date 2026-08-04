@@ -19,7 +19,15 @@
     "auto-fallback", "code-validation", "groq", "gemini",
     "cerebras", "mistral", "vscode", "cline", "cursor"
   ],
-  "author": "",
+  "author": "Muhammad Jahanzaib <ai@buraqminds.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jahanzaibkhan1/FreeCodeAI.git"
+  },
+  "homepage": "https://github.com/jahanzaibkhan1/FreeCodeAI#readme",
+  "bugs": {
+    "url": "https://github.com/jahanzaibkhan1/FreeCodeAI/issues"
+  },
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
