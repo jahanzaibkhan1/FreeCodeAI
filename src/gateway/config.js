@@ -54,7 +54,7 @@ const DEFAULT_CONFIG = {
       enabled: true,
       api_key: process.env.OPENROUTER_API_KEY || "",
       base_url: "https://openrouter.ai/api/v1",
-      models: ["qwen/qwen3-coder:free", "meta-llama/llama-3.3-70b:free"],
+      models: ["qwen/qwen3-coder:free", "qwen/qwen3-235b-a22b:free", "meta-llama/llama-3.3-70b:free"],
       priority: 4,
       rate_limit: { rpm: 20 },
     },
