@@ -18,10 +18,32 @@
 </p>
 
 <p align="center">
-  <img src="docs/demo.gif" width="720" alt="FreeCodeAI demo — gateway startup, auto-fallback, and code validation"/>
-</p>
 
-> **Demo GIF coming soon.** Run `npx freecodeai setup && npx freecodeai start` to see it live.
+```
+$ freecodeai start
+
+  ╔══════════════════════════════════════════════╗
+  ║           FreeCodeAI Gateway v1.0            ║
+  ║                                              ║
+  ║  Endpoint: http://localhost:3377/v1          ║
+  ║  Strategy: auto                              ║
+  ║  Providers: 13                               ║
+  ║                                              ║
+  ║  Point your AI tool here. Start coding.      ║
+  ╚══════════════════════════════════════════════╝
+
+  ✅  Groq        llama-3.3-70b-versatile   healthy
+  ✅  Gemini      gemini-2.0-flash          healthy
+  ✅  Cerebras    llama-3.3-70b             healthy
+  ✅  Mistral     mistral-small-latest      healthy
+  ✅  OpenRouter  qwen3-coder:free          healthy
+  ✅  SambaNova   Llama-3.1-405B            healthy
+  ✅  DeepSeek    deepseek-chat             healthy
+  ✅  Cohere      command-r-plus            healthy
+  ○   [+ 5 more providers]
+```
+
+</p>
 
 ---
 
