@@ -168,7 +168,7 @@ See [docs/configuration.md](docs/configuration.md) for full provider config.
 See [CONTRIBUTING.md](CONTRIBUTING.md). Priority areas: new providers, routing strategies, validation heuristics, dashboard UI.
 
 ```bash
-git clone https://github.com/jahanzaibkhan1/freecodeai.git
+git clone https://github.com/jahanzaibkhan1/FreeCodeAI.git
 cd freecodeai && npm install && npm run dev
 ```
 
