@@ -165,11 +165,43 @@ Real-time provider health, execution stats, and a Provider Quality table with li
 
 | Strategy | What it does |
 |----------|-------------|
-| `auto` | Picks fastest available provider |
+| `auto` | Priority-ordered fallback through all providers |
 | `round-robin` | Distributes evenly across providers |
-| `quality-first` | Uses highest-quality model available |
-| `speed-first` | Uses fastest responding provider |
-| `validate` | Sends to 3 models, returns best answer |
+| `quality-first` | Routes by real-world pass rate — self-improving |
+| `speed-first` | Races all providers, returns the fastest response |
+| `validate` | Sends to 3 models in parallel, returns best answer |
+
+#### quality-first — the self-improving router
+
+Every time you add `"execute": true` to a request, FreeCodeAI runs the generated code and records whether it passed or failed. After 5 executions, a provider is considered "proven" and gets ranked by its actual pass rate. Unproven providers fall back to the static priority order.
+
+```
+Week 1: no data → static order (gemini > mistral > groq...)
+Week 2: Groq has 94% pass rate, Gemini has 87% → Groq moves to #1
+Week 3: new provider added → starts unproven, earns its rank
+```
+
+Use it per-request or set it as your default:
+
+```javascript
+// Per-request
+{ "model": "quality-first", ... }
+
+// Or as gateway default
+STRATEGY=quality-first npm start
+```
+
+Check the current ranking anytime:
+
+```bash
+curl http://localhost:3377/api/quality
+
+# {
+#   "groq":    { "executions": 142, "passes": 134, "pass_rate": 94 },
+#   "gemini":  { "executions": 98,  "passes": 85,  "pass_rate": 87 },
+#   "mistral": { "executions": 61,  "passes": 48,  "pass_rate": 79 }
+# }
+```
 
 ## Free Providers (No Credit Card Required)
 
@@ -255,7 +287,7 @@ cd freecodeai && npm install && npm run dev
 - [x] MCP server for Claude Code
 - [x] Sandboxed code execution (JS + Python)
 - [x] Per-provider quality scoring (pass rate tracking)
-- [ ] Quality-first routing (route by historical pass rate)
+- [x] Quality-first routing (self-improving, driven by real pass rates)
 - [ ] VS Code extension (native)
 - [ ] Auto-discovery from cheahjs/free-llm-api-resources
 - [ ] Token compression
