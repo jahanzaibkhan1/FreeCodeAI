@@ -143,9 +143,10 @@ const DEFAULT_CONFIG = {
       enabled: true,
       api_key: process.env.OVHCLOUD_API_KEY || "",
       base_url: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1",
-      models: ["Mistral-7B-Instruct-v0.2"],
+      models: ["Qwen3-32B"],
       priority: 15,
-      rate_limit: { rpm: 12 },
+      rate_limit: { rpm: 2 },
+      anonymous: true,  // free tier works without an API key
     },
   },
 };
@@ -172,7 +173,7 @@ function loadConfig() {
     ),
   };
   for (const provider of Object.values(config.providers)) {
-    if (!provider.api_key) provider.enabled = false;
+    if (!provider.api_key && !provider.anonymous) provider.enabled = false;
   }
 
   return config;

@@ -23,7 +23,8 @@ class OpenAIProvider {
       const cfUrl = `${this.config.base_url}/${this.config.account_id}/ai/v1/chat/completions`;
       headers["Authorization"] = `Bearer ${this.config.api_key}`;
       return this._fetch(cfUrl, headers, { ...request, model });
-    } else {
+    } else if (this.config.api_key) {
+      // Only send auth header if a key is configured (supports anonymous providers)
       headers["Authorization"] = `Bearer ${this.config.api_key}`;
     }
 
