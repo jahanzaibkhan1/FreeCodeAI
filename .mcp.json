@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "freecodeai": {
+      "command": "node",
+      "args": ["E:\\freecodeai\\src\\mcp\\server.js"]
+    }
+  }
+}
