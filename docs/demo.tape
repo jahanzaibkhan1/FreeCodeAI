@@ -12,16 +12,16 @@ Set Padding 24
 Set TypingSpeed 42ms
 
 # ── Scene 1: Gateway startup ───────────────────────────────────
-Type "node scripts/demo-start.js"
+Type "bash scripts/demo.sh start"
 Enter
 Sleep 4.5s
 
 # ── Scene 2: Auto-fallback in action ──────────────────────────
-Type "node scripts/demo-fallback.js"
+Type "bash scripts/demo.sh fallback"
 Enter
 Sleep 5s
 
 # ── Scene 3: Code validation across 3 models ──────────────────
-Type "node scripts/demo-validate.js"
+Type "bash scripts/demo.sh validate"
 Enter
-Sleep 5.5s
+Sleep 5s
