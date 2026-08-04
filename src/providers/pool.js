@@ -1,4 +1,7 @@
 const { OpenAIProvider } = require("./openai-compatible");
+const qualityStore = require("../executor/quality-store");
+
+const MIN_EXECUTIONS = 5; // need at least this many code runs before trusting pass_rate
 
 class ProviderPool {
   constructor(providersConfig) {
@@ -57,22 +60,59 @@ class ProviderPool {
   }
 
   getByQuality() {
-    const qualityOrder = [
+    const qData = qualityStore.getAll();
+
+    // Static fallback order used when a provider has no execution data yet
+    const staticOrder = [
       "gemini", "mistral", "deepseek", "groq", "cerebras",
       "openrouter", "cohere", "sambanova", "nvidia",
       "huggingface", "github", "cloudflare",
     ];
+
     return [...this.providers.entries()]
       .filter(([name]) => {
         const h = this.health.get(name);
         return h.healthy && !this.isRateLimited(name);
       })
-      .sort(([a], [b]) => {
-        const ai = qualityOrder.indexOf(a);
-        const bi = qualityOrder.indexOf(b);
+      .sort(([nameA], [nameB]) => {
+        const qa = qData[nameA];
+        const qb = qData[nameB];
+        const aProven = qa && qa.executions >= MIN_EXECUTIONS;
+        const bProven = qb && qb.executions >= MIN_EXECUTIONS;
+
+        // Both proven by execution data → higher pass_rate wins
+        if (aProven && bProven) return (qb.pass_rate || 0) - (qa.pass_rate || 0);
+
+        // One proven, one not → proven goes first
+        if (aProven) return -1;
+        if (bProven) return 1;
+
+        // Neither proven → fall back to static priority list
+        const ai = staticOrder.indexOf(nameA);
+        const bi = staticOrder.indexOf(nameB);
         return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
       })
       .map(([, provider]) => provider);
+  }
+
+  // Returns quality ranking metadata — used for router logging
+  getQualitySummary() {
+    const qData = qualityStore.getAll();
+    return [...this.providers.keys()].map((name) => {
+      const q = qData[name];
+      const proven = q && q.executions >= MIN_EXECUTIONS;
+      return {
+        name,
+        pass_rate: proven ? q.pass_rate : null,
+        executions: q ? q.executions : 0,
+        proven,
+      };
+    }).sort((a, b) => {
+      if (a.proven && b.proven) return (b.pass_rate || 0) - (a.pass_rate || 0);
+      if (a.proven) return -1;
+      if (b.proven) return 1;
+      return 0;
+    });
   }
 
   getNextRoundRobin() {
@@ -163,7 +203,8 @@ class ProviderPool {
     }
     models.unshift(
       { id: "auto", object: "model", owned_by: "freecodeai" },
-      { id: "validate", object: "model", owned_by: "freecodeai" }
+      { id: "validate", object: "model", owned_by: "freecodeai" },
+      { id: "quality-first", object: "model", owned_by: "freecodeai" }
     );
     return models;
   }

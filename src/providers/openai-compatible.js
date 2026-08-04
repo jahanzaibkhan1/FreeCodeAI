@@ -7,10 +7,8 @@ class OpenAIProvider {
   }
 
   async complete(request) {
-    const model =
-      request.model === "auto" || request.model === "validate"
-        ? this.currentModel
-        : request.model;
+    const GATEWAY_ALIASES = new Set(["auto", "validate", "quality-first"]);
+    const model = GATEWAY_ALIASES.has(request.model) ? this.currentModel : request.model;
 
     const url = `${this.config.base_url}/chat/completions`;
     const headers = { "Content-Type": "application/json" };

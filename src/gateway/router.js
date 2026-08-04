@@ -7,18 +7,17 @@ class Router {
   }
 
   async route(request) {
-    const strategy = request.model === "validate"
-      ? "validate"
-      : (request.model === "auto" ? this.strategy : "specific");
+    const modelAliases = { validate: "validate", auto: "auto", "quality-first": "quality-first" };
+    const strategy = modelAliases[request.model] ?? (request.model === "auto" ? this.strategy : "specific");
 
     switch (strategy) {
-      case "validate":    return this.validateRoute(request);
-      case "round-robin": return this.roundRobinRoute(request);
-      case "speed-first": return this.speedFirstRoute(request);
+      case "validate":      return this.validateRoute(request);
+      case "round-robin":   return this.roundRobinRoute(request);
+      case "speed-first":   return this.speedFirstRoute(request);
       case "quality-first": return this.qualityFirstRoute(request);
-      case "specific":    return this.specificRoute(request);
+      case "specific":      return this.specificRoute(request);
       case "auto":
-      default:            return this.autoRoute(request);
+      default:              return this.autoRoute(request);
     }
   }
 
@@ -88,7 +87,16 @@ class Router {
   }
 
   async qualityFirstRoute(request) {
-    return this.autoRoute({ ...request, _providers: this.pool.getByQuality() });
+    const ranked = this.pool.getByQuality();
+    const summary = this.pool.getQualitySummary();
+
+    // Log the quality ranking so the operator can see what's driving the decision
+    const top = summary.slice(0, 5).map((p) =>
+      p.proven ? `${p.name}(${p.pass_rate}%)` : `${p.name}(no data)`
+    ).join(" > ");
+    console.log(`[Router] quality-first ranking: ${top}`);
+
+    return this.autoRoute({ ...request, _providers: ranked });
   }
 
   async specificRoute(request) {
