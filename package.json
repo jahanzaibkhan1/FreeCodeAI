@@ -12,7 +12,7 @@
     "setup": "node cli/setup.js",
     "dashboard": "node src/dashboard/server.js",
     "validate": "node src/validator/validate.js",
-    "test": "node --test tests/"
+    "test": "node --test tests/**/*.test.js"
   },
   "keywords": [
     "ai", "llm", "free", "coding", "openai", "gateway",

@@ -41,11 +41,17 @@ class ProviderPool {
 
   getBySpeed() {
     return [...this.providers.entries()]
-      .filter(([name]) => !this.isRateLimited(name))
+      .filter(([name]) => {
+        const h = this.health.get(name);
+        return h.healthy && !this.isRateLimited(name);
+      })
       .sort(([nameA], [nameB]) => {
         const a = this.health.get(nameA);
         const b = this.health.get(nameB);
-        return (a.avgResponseTime || Infinity) - (b.avgResponseTime || Infinity);
+        // Untried providers (0) go last, not first
+        const aTime = a.avgResponseTime || Infinity;
+        const bTime = b.avgResponseTime || Infinity;
+        return aTime - bTime;
       })
       .map(([, provider]) => provider);
   }
@@ -57,7 +63,10 @@ class ProviderPool {
       "huggingface", "github", "cloudflare",
     ];
     return [...this.providers.entries()]
-      .filter(([name]) => !this.isRateLimited(name))
+      .filter(([name]) => {
+        const h = this.health.get(name);
+        return h.healthy && !this.isRateLimited(name);
+      })
       .sort(([a], [b]) => {
         const ai = qualityOrder.indexOf(a);
         const bi = qualityOrder.indexOf(b);
@@ -94,12 +103,19 @@ class ProviderPool {
     return true;
   }
 
-  recordSuccess(name) {
+  // responseTimeMs is measured by the caller (router) around the full request
+  recordSuccess(name, responseTimeMs = 0) {
     const h = this.health.get(name);
     if (!h) return;
     h.successCount++;
     h.healthy = true;
     h.lastUsed = Date.now();
+    if (responseTimeMs > 0) {
+      // Exponential moving average (α=0.2) so recent times matter more
+      h.avgResponseTime = h.avgResponseTime === 0
+        ? responseTimeMs
+        : h.avgResponseTime * 0.8 + responseTimeMs * 0.2;
+    }
   }
 
   recordFailure(name, error) {
@@ -126,6 +142,7 @@ class ProviderPool {
         rateLimited: this.isRateLimited(name),
         requests: h.successCount + h.failureCount,
         successRate: h.successCount / Math.max(h.successCount + h.failureCount, 1),
+        avgResponseTime: Math.round(h.avgResponseTime),
       };
     }
     return status;
@@ -143,7 +160,6 @@ class ProviderPool {
         });
       }
     }
-    // Add meta-models
     models.unshift(
       { id: "auto", object: "model", owned_by: "freecodeai" },
       { id: "validate", object: "model", owned_by: "freecodeai" }

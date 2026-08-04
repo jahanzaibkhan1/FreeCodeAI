@@ -49,12 +49,18 @@ const server = http.createServer(async (req, res) => {
       });
 
       if (result.stream) {
-        // Stream SSE response
+        // Stream SSE response; abort early if client disconnects
+        let clientGone = false;
+        req.on("close", () => { clientGone = true; });
+
         for await (const chunk of result.data) {
+          if (clientGone) break;
           res.write(`data: ${JSON.stringify(chunk)}\n\n`);
         }
-        res.write("data: [DONE]\n\n");
-        res.end();
+        if (!clientGone) {
+          res.write("data: [DONE]\n\n");
+          res.end();
+        }
       } else {
         res.end(JSON.stringify(result.data));
       }
