@@ -32,9 +32,12 @@ jobs:
 
       - name: Install VHS
         run: |
-          VHS_URL=$(curl -s https://api.github.com/repos/charmbracelet/vhs/releases/latest \
-            | grep "browser_download_url.*Linux_x86_64.tar.gz" | head -1 | cut -d'"' -f4)
-          curl -sL "$VHS_URL" | tar xz vhs
+          VHS_TAG=$(curl -s https://api.github.com/repos/charmbracelet/vhs/releases/latest \
+            | jq -r '.tag_name')
+          VHS_VER=${VHS_TAG#v}
+          curl -sL "https://github.com/charmbracelet/vhs/releases/download/${VHS_TAG}/vhs_${VHS_VER}_Linux_x86_64.tar.gz" \
+            -o vhs.tar.gz
+          tar xzf vhs.tar.gz vhs
           sudo mv vhs /usr/local/bin/vhs
           vhs --version
 

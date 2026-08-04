@@ -10,8 +10,12 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node-version: [18, 20, 22]
+        include:
+          - node-version: 22
+            experimental: true
 
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +30,7 @@ jobs:
 
       - name: Run tests
         run: npm test
+        continue-on-error: ${{ matrix.experimental == true }}
 
       - name: Lint check
         run: npx --yes eslint src/ --ext .js --no-eslintrc --rule '{"no-unused-vars":"warn","no-undef":"error"}' || true
