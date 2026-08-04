@@ -5,7 +5,7 @@
 <h1 align="center">FreeCodeAI</h1>
 
 <p align="center">
-  <strong>One command. 15+ free AI models. Auto-fallback. Code validation.</strong><br>
+  <strong>One command. 15+ free AI models. Auto-fallback. Code validation. Live execution.</strong><br>
   Stop paying $200/month for AI coding. Every free LLM provider, one endpoint.
 </p>
 
@@ -116,9 +116,50 @@ freecodeai validate "Write a merge sort in Python"
 # └─────────────┴──────────┴─────────┴────────────┘
 ```
 
+### Code Execution — Prove It Works
+
+Add `"execute": true` to any request and FreeCodeAI will actually **run the generated code** and tell you if it passed or failed. JavaScript and Python supported.
+
+```javascript
+const res = await fetch("http://localhost:3377/v1/chat/completions", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    model: "auto",
+    execute: true,                    // ← add this
+    messages: [{ role: "user", content: "Write a Python factorial function and test it" }]
+  })
+});
+
+const data = await res.json();
+console.log(data._execution);
+// {
+//   ran: true,
+//   passed: true,        ← code actually executed without errors
+//   language: "python",
+//   durationMs: 34,
+//   stdout: "120\n1",   ← real output from running the code
+//   error: null
+// }
+```
+
+The gateway also tracks each provider's **pass rate** over time — how often does their generated code actually run? That data feeds into routing, so the best-performing provider gets picked first.
+
+```
+GET http://localhost:3377/api/quality
+
+{
+  "groq":    { "requests": 42, "executions": 40, "passes": 37, "pass_rate": 93 },
+  "gemini":  { "requests": 38, "executions": 35, "passes": 34, "pass_rate": 97 },
+  "mistral": { "requests": 21, "executions": 19, "passes": 15, "pass_rate": 79 }
+}
+```
+
+**No other gateway does this.** OmniRoute routes. FreeCodeAI routes, validates, and proves the answer works.
+
 ### Live Dashboard
 
-Real-time provider health, token usage, cost savings. Run `freecodeai dashboard` → opens `localhost:3378`.
+Real-time provider health, execution stats, and a Provider Quality table with live pass rates. Run `freecodeai dashboard` → opens `localhost:3378`.
 
 ### Smart Routing
 
@@ -168,21 +209,30 @@ See [docs/configuration.md](docs/configuration.md) for full provider config.
 ## Architecture
 
 ```
-┌──────────────┐     ┌──────────────────────────────────────┐
-│   VS Code    │────▶│         FreeCodeAI Gateway            │
-│   Cursor     │     │  ┌─────────┐  ┌────────────────────┐ │
-│   Cline      │     │  │ Router  │──│ Provider Pool       │ │
-│   Claude Code│     │  │         │  │ ✅ Gemini (healthy) │ │
-└──────────────┘     │  │  auto   │  │ ⚠️ Groq (limited)   │ │
-                     │  │ routing │  │ ✅ Cerebras (ready) │ │
-                     │  └────┬────┘  │ ✅ Mistral (ready)  │ │
-                     │       │       └────────────────────┘ │
-                     │       ▼                              │
-                     │  ┌─────────┐  ┌────────────────────┐ │
-                     │  │Validator│  │    Dashboard        │ │
-                     │  │ 3-model │  │  localhost:3378     │ │
-                     │  └─────────┘  └────────────────────┘ │
-                     └──────────────────────────────────────┘
+┌──────────────┐     ┌───────────────────────────────────────────┐
+│   VS Code    │────▶│           FreeCodeAI Gateway               │
+│   Cursor     │     │  ┌─────────┐  ┌─────────────────────────┐ │
+│   Cline      │     │  │ Router  │──│ Provider Pool            │ │
+│   Claude Code│     │  │         │  │ ✅ Gemini  97% pass rate │ │
+└──────────────┘     │  │  auto / │  │ ✅ Groq    93% pass rate │ │
+                     │  │validate │  │ ✅ Cerebras 91% pass rate│ │
+                     │  └────┬────┘  └─────────────────────────┘ │
+                     │       │                                    │
+                     │       ▼                                    │
+                     │  ┌──────────┐  ┌──────────┐               │
+                     │  │Validator │  │ Executor │               │
+                     │  │ 3-model  │─▶│ JS/Python│               │
+                     │  │ parallel │  │ sandbox  │               │
+                     │  └──────────┘  └────┬─────┘               │
+                     │                     │                      │
+                     │               Quality Store                │
+                     │            (pass rates per provider)       │
+                     │                                            │
+                     │  ┌──────────────────────────────────────┐  │
+                     │  │  Dashboard  localhost:3378           │  │
+                     │  │  Provider health + Quality table     │  │
+                     │  └──────────────────────────────────────┘  │
+                     └───────────────────────────────────────────┘
 ```
 
 ## Contributing
@@ -198,14 +248,17 @@ cd freecodeai && npm install && npm run dev
 
 - [x] Multi-provider gateway with auto-fallback
 - [x] CLI setup wizard
-- [x] Code validation across models
+- [x] Code validation across 3 models in parallel
 - [x] Live health dashboard
 - [x] Docker support
 - [x] GitHub Actions CI/CD
+- [x] MCP server for Claude Code
+- [x] Sandboxed code execution (JS + Python)
+- [x] Per-provider quality scoring (pass rate tracking)
+- [ ] Quality-first routing (route by historical pass rate)
 - [ ] VS Code extension (native)
-- [ ] MCP server for Claude Code
 - [ ] Auto-discovery from cheahjs/free-llm-api-resources
-- [ ] Token usage analytics
+- [ ] Token compression
 - [ ] Team mode (shared provider pool)
 
 ## The Story
