@@ -1,6 +1,6 @@
 {
   "name": "freecodeai",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "One command. 15+ free AI models. Auto-fallback. Code validation across models.",
   "main": "src/gateway/server.js",
   "bin": {
