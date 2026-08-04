@@ -4,7 +4,7 @@
   "description": "One command. 15+ free AI models. Auto-fallback. Code validation across models.",
   "main": "src/gateway/server.js",
   "bin": {
-    "freecodeai": "./cli/index.js"
+    "freecodeai": "cli/index.js"
   },
   "scripts": {
     "start": "node src/gateway/server.js",
@@ -15,14 +15,26 @@
     "test": "node --test tests/**/*.test.js"
   },
   "keywords": [
-    "ai", "llm", "free", "coding", "openai", "gateway",
-    "auto-fallback", "code-validation", "groq", "gemini",
-    "cerebras", "mistral", "vscode", "cline", "cursor"
+    "ai",
+    "llm",
+    "free",
+    "coding",
+    "openai",
+    "gateway",
+    "auto-fallback",
+    "code-validation",
+    "groq",
+    "gemini",
+    "cerebras",
+    "mistral",
+    "vscode",
+    "cline",
+    "cursor"
   ],
   "author": "Muhammad Jahanzaib <ai@buraqminds.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jahanzaibkhan1/FreeCodeAI.git"
+    "url": "git+https://github.com/jahanzaibkhan1/FreeCodeAI.git"
   },
   "homepage": "https://github.com/jahanzaibkhan1/FreeCodeAI#readme",
   "bugs": {

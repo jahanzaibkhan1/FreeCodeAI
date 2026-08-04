@@ -1,0 +1,20 @@
+# Dev and editor files
+.claude/
+.env
+.env.*
+!.env.example
+data/
+
+# CI and docs
+.github/
+docs/demo.tape
+scripts/
+
+# Tests
+tests/
+
+# Misc
+*.log
+.DS_Store
+coverage/
+dist/
