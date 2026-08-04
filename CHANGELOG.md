@@ -2,6 +2,30 @@
 
 All notable changes to FreeCodeAI are documented here.
 
+## [1.2.0] - 2026-08-04
+
+### Added
+- **Code executor** — add `execute: true` to any request to run the generated code in a sandbox (JS via Node `vm`, Python via subprocess, 5s timeout each)
+- **Provider quality scoring** — every code execution records pass/fail per provider; persisted to `data/quality.json`
+- **`/api/quality` endpoint** — real-time pass rate data for all providers (available on both gateway port 3377 and dashboard port 3378)
+- **Self-improving quality-first routing** — `"model": "quality-first"` routes to the provider with the highest real-world pass rate; falls back to static priority order until a provider has ≥5 executions of proven data
+- **MCP server** (`src/mcp/server.js`) — Claude Code integration via `.mcp.json`; exposes three tools: `freecodeai_validate`, `freecodeai_route`, `freecodeai_status`
+- **`_execution` field in response body** — `{ ran, passed, language, durationMs, stdout, error }` when `execute: true`
+- **`X-FreeCodeAI-Execution` response header** — `pass` or `fail` for quick inspection
+- **Dashboard Provider Quality table** — live color-coded pass rate bars, auto-refreshes every 5s
+- **Python 3 support** — Windows App Execution Alias stub bypassed via `where.exe` resolution; falls back through known install paths
+- Python installed at `%LOCALAPPDATA%\Programs\Python\Python313`
+
+### Fixed
+- `"quality-first"` model alias now correctly maps to each provider's own model name (previously caused 503 as literal string was sent to provider APIs)
+- Windows `python`/`python3` commands now resolve to real Python install, not Microsoft Store stub
+
+### Changed
+- `getByQuality()` in provider pool now reads live pass rate data instead of a hardcoded static list
+- `quality-first` strategy logs the top-5 provider ranking on every call
+- Dashboard stat card "Est. Daily Tokens" replaced with "Code Executions" counter
+- `"quality-first"` added to `/v1/models` list so AI tools can discover it
+
 ## [1.1.0] - 2026-08-04
 
 ### Added
