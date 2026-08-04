@@ -1,6 +1,24 @@
 const fs = require("fs");
 const path = require("path");
 
+// Load .env before reading process.env — Node doesn't do this automatically
+function loadDotEnv() {
+  const envFile = path.join(process.cwd(), ".env");
+  if (!fs.existsSync(envFile)) return;
+  try {
+    fs.readFileSync(envFile, "utf-8").split("\n").forEach((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) return;
+      const eq = trimmed.indexOf("=");
+      if (eq === -1) return;
+      const key = trimmed.slice(0, eq).trim();
+      const value = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+      if (key && !process.env[key]) process.env[key] = value;
+    });
+  } catch { /* ignore unreadable .env */ }
+}
+loadDotEnv();
+
 const DEFAULT_CONFIG = {
   port: 3377,
   dashboard_port: 3378,
@@ -11,7 +29,7 @@ const DEFAULT_CONFIG = {
     gemini: {
       enabled: true,
       api_key: process.env.GEMINI_API_KEY || "",
-      base_url: "https://generativelanguage.googleapis.com/v1beta",
+      base_url: "https://generativelanguage.googleapis.com/v1beta/openai",
       models: ["gemini-2.5-flash"],
       priority: 1,
       rate_limit: { rpm: 15, rpd: 1500, tpm: 1000000 },
@@ -76,7 +94,7 @@ const DEFAULT_CONFIG = {
     cohere: {
       enabled: true,
       api_key: process.env.COHERE_API_KEY || "",
-      base_url: "https://api.cohere.com/v1",
+      base_url: "https://api.cohere.com/compatibility/v1",
       models: ["command-r-plus"],
       priority: 9,
       rate_limit: { rpd: 100 },
