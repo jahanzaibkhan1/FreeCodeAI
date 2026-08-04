@@ -10,7 +10,7 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify(getProviderStatus()));
   }
 
-  res.writeHead(200, { "Content-Type": "text/html" });
+  res.writeHead(200, { "Content-Type": "text/html", "Cache-Control": "no-store" });
   res.end(DASHBOARD_HTML);
 });
 
@@ -18,11 +18,11 @@ function getProviderStatus() {
   const providers = config.providers;
   return Object.entries(providers).map(([name, cfg]) => ({
     name,
-    enabled: cfg.enabled && !!cfg.api_key,
+    enabled: cfg.enabled && !!(cfg.api_key || cfg.anonymous),
     models: cfg.models || [],
     rateLimit: cfg.rate_limit || {},
     priority: cfg.priority,
-    status: cfg.enabled && cfg.api_key ? "healthy" : "disabled",
+    status: cfg.enabled && (cfg.api_key || cfg.anonymous) ? "healthy" : "disabled",
   }));
 }
 
