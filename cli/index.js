@@ -36,10 +36,11 @@ async function main() {
       console.log("Opening dashboard at http://localhost:3378...");
       require("../src/dashboard/server");
       break;
-    case "validate":
+    case "validate": {
       const prompt = args.slice(1).join(" ");
       await require("./validate-cli").run(prompt);
       break;
+    }
     case "status":
       await require("./status").run();
       break;

@@ -36,7 +36,13 @@ const server = http.createServer(async (req, res) => {
   if (req.url === "/v1/chat/completions" && req.method === "POST") {
     try {
       const body = await readBody(req);
-      const parsed = JSON.parse(body);
+      let parsed;
+      try {
+        parsed = JSON.parse(body);
+      } catch {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: { message: "Invalid JSON body", type: "invalid_request_error" } }));
+      }
 
       // Add fallback headers to response
       const result = await router.route(parsed);
@@ -89,6 +95,13 @@ function readBody(req) {
 }
 
 const PORT = config.port || 3377;
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`\n  Port ${PORT} is already in use. Is FreeCodeAI already running?\n`);
+    process.exit(1);
+  }
+  throw err;
+});
 server.listen(PORT, () => {
   console.log(`
   ╔══════════════════════════════════════════════╗

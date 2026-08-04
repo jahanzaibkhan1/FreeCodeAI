@@ -118,12 +118,17 @@ async function run() {
     }
   }
 
-  // Write .env file
-  const envContent = Object.entries(keys)
-    .map(([k, v]) => `${k}=${v}`)
-    .join("\n");
-
+  // Merge with existing .env so previously configured keys are not lost
   const envPath = path.join(process.cwd(), ".env");
+  const existing = {};
+  if (fs.existsSync(envPath)) {
+    fs.readFileSync(envPath, "utf-8").split("\n").forEach((line) => {
+      const eq = line.indexOf("=");
+      if (eq > 0) existing[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
+    });
+  }
+  const merged = { ...existing, ...keys };
+  const envContent = Object.entries(merged).map(([k, v]) => `${k}=${v}`).join("\n");
   fs.writeFileSync(envPath, envContent + "\n");
 
   console.log(`

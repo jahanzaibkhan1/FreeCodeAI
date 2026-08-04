@@ -140,12 +140,15 @@ function loadConfig() {
     }
   }
 
-  // Filter out providers without API keys
-  const config = { ...DEFAULT_CONFIG };
-  for (const [name, provider] of Object.entries(config.providers)) {
-    if (!provider.api_key) {
-      provider.enabled = false;
-    }
+  // Deep-copy providers so we don't mutate the shared DEFAULT_CONFIG object
+  const config = {
+    ...DEFAULT_CONFIG,
+    providers: Object.fromEntries(
+      Object.entries(DEFAULT_CONFIG.providers).map(([name, p]) => [name, { ...p }])
+    ),
+  };
+  for (const provider of Object.values(config.providers)) {
+    if (!provider.api_key) provider.enabled = false;
   }
 
   return config;

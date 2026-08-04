@@ -76,7 +76,7 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
   </div>
 
   <div class="endpoint">
-    <div class="endpoint-box">Endpoint: http://localhost:3377/v1/chat/completions</div>
+    <div class="endpoint-box">Endpoint: http://localhost:${config.port || 3377}/v1/chat/completions</div>
   </div>
 
   <div class="stats" id="stats"></div>

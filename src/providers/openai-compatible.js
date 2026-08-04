@@ -1,16 +1,3 @@
-const https = require("https");
-const http = require("http");
-
-// Per-base-URL keep-alive agents (connection pooling)
-const agentCache = new Map();
-function getAgent(baseUrl) {
-  if (!agentCache.has(baseUrl)) {
-    const AgentClass = baseUrl.startsWith("https") ? https.Agent : http.Agent;
-    agentCache.set(baseUrl, new AgentClass({ keepAlive: true, maxSockets: 6 }));
-  }
-  return agentCache.get(baseUrl);
-}
-
 class OpenAIProvider {
   constructor(name, config) {
     this.name = name;
@@ -47,17 +34,12 @@ class OpenAIProvider {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.requestTimeout);
 
-    const agent = getAgent(this.config.base_url);
-
     let response;
     try {
       response = await fetch(url, {
         method: "POST",
         headers,
         signal: controller.signal,
-        // Node 18 fetch doesn't support `dispatcher`; agent is passed for
-        // compatibility with environments that accept it
-        agent,
         body: JSON.stringify({
           model: body.model,
           messages: body.messages,
@@ -66,11 +48,13 @@ class OpenAIProvider {
           stream: body.stream ?? false,
         }),
       });
-    } finally {
+    } catch (err) {
       clearTimeout(timer);
+      throw err;
     }
 
     if (!response.ok) {
+      clearTimeout(timer);
       const errorBody = await response.text();
       const error = new Error(
         `${this.name} returned ${response.status}: ${errorBody.slice(0, 200)}`
@@ -80,12 +64,18 @@ class OpenAIProvider {
       throw error;
     }
 
+    // For streams the duration is unbounded — release the timeout once headers arrive
     if (body.stream) {
+      clearTimeout(timer);
       return this._handleStream(response);
     }
 
-    const data = await response.json();
-    return data;
+    // For non-streaming, keep the timeout active until the full body is read
+    try {
+      return await response.json();
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   async *_handleStream(response) {

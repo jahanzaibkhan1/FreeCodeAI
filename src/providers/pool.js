@@ -109,6 +109,7 @@ class ProviderPool {
     if (!h) return;
     h.successCount++;
     h.healthy = true;
+    h.failureCount = 0;  // reset so sustained future failures can blacklist again
     h.lastUsed = Date.now();
     if (responseTimeMs > 0) {
       // Exponential moving average (α=0.2) so recent times matter more

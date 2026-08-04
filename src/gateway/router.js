@@ -111,12 +111,16 @@ class Router {
     if (providers.length === 0) throw { status: 503, message: "No providers available for validation" };
 
     const withTimeout = (p) =>
-      Promise.race([
-        p,
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("provider timeout")), VALIDATE_TIMEOUT_MS)
-        ),
-      ]);
+      new Promise((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("provider timeout")),
+          VALIDATE_TIMEOUT_MS
+        );
+        p.then(
+          (v) => { clearTimeout(timer); resolve(v); },
+          (e) => { clearTimeout(timer); reject(e); }
+        );
+      });
 
     const results = await Promise.allSettled(
       providers.map((p) => {
