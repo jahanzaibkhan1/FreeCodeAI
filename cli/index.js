@@ -13,15 +13,15 @@ const HELP = `
     setup       Interactive setup wizard (get API keys, configure providers)
     start       Start the gateway server
     dashboard   Open the live health dashboard
-    validate    Validate code across multiple models
+    validate    Validate a prompt across multiple models in parallel
     status      Show provider health status
-    add         Add a new provider
     help        Show this help
 
   Examples:
-    freecodeai setup          # First-time setup
-    freecodeai start          # Start coding with free AI
-    freecodeai validate       # Cross-validate AI code
+    freecodeai setup                               # First-time setup
+    freecodeai start                               # Start the gateway
+    freecodeai validate "write a binary search"    # Cross-validate output
+    freecodeai status                              # Check provider health
 `;
 
 async function main() {
@@ -33,7 +33,6 @@ async function main() {
       require("../src/gateway/server");
       break;
     case "dashboard":
-      console.log("Opening dashboard at http://localhost:3378...");
       require("../src/dashboard/server");
       break;
     case "validate": {

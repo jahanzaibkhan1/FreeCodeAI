@@ -1,29 +1,67 @@
+﻿// @ts-nocheck
 const http = require("http");
 const { loadConfig } = require("../gateway/config");
 
 const config = loadConfig();
 const PORT = config.dashboard_port || 3378;
+const GATEWAY_PORT = config.port || 3377;
 
-const server = http.createServer((req, res) => {
-  if (req.url === "/api/status") {
-    res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
-    return res.end(JSON.stringify(getProviderStatus()));
+const server = http.createServer(async (req, res) => {
+  try {
+    if (req.url === "/api/status") {
+      res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
+      return res.end(JSON.stringify(await getProviderStatus()));
+    }
+
+    res.writeHead(200, { "Content-Type": "text/html" });
+    res.end(DASHBOARD_HTML);
+  } catch (err) {
+    if (!res.headersSent) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+    }
+    res.end(JSON.stringify({ error: err.message }));
   }
-
-  res.writeHead(200, { "Content-Type": "text/html" });
-  res.end(DASHBOARD_HTML);
 });
 
-function getProviderStatus() {
+async function getProviderStatus() {
   const providers = config.providers;
-  return Object.entries(providers).map(([name, cfg]) => ({
+  const base = Object.entries(providers).map(([name, cfg]) => ({
     name,
     enabled: cfg.enabled && !!cfg.api_key,
     models: cfg.models || [],
-    rateLimit: cfg.rate_limit || {},
     priority: cfg.priority,
     status: cfg.enabled && cfg.api_key ? "healthy" : "disabled",
+    avgResponseTime: 0,
+    successRate: 1,
+    requests: 0,
+    rateLimited: false,
   }));
+
+  // Overlay live health data from the running gateway
+  try {
+    const res = await fetch(`http://localhost:${GATEWAY_PORT}/health`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (res.ok) {
+      const { providers: live } = await res.json();
+      return base.map((p) => {
+        const h = live[p.name];
+        if (!h) return p;
+        return {
+          ...p,
+          status: h.rateLimited ? "limited" : h.healthy ? "healthy" : "degraded",
+          avgResponseTime: h.avgResponseTime,
+          successRate: Math.round(h.successRate * 100),
+          requests: h.requests,
+          rateLimited: h.rateLimited,
+        };
+      });
+    }
+  } catch {
+    // Gateway not reachable - serve config-based status
+  }
+
+  return base;
 }
 
 const DASHBOARD_HTML = `<!DOCTYPE html>
@@ -55,16 +93,21 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
     .provider { background: #111; border: 1px solid #1a1a1a; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; transition: border-color 0.2s; }
     .provider:hover { border-color: #333; }
     .provider-left { display: flex; align-items: center; gap: 12px; }
-    .provider-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .provider-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .provider-dot.healthy { background: #22c55e; }
-    .provider-dot.disabled { background: #666; }
+    .provider-dot.disabled { background: #444; }
     .provider-dot.limited { background: #f59e0b; }
+    .provider-dot.degraded { background: #ef4444; }
     .provider-name { font-weight: 500; font-size: 14px; }
     .provider-model { font-size: 12px; color: #666; margin-top: 2px; }
-    .provider-right { text-align: right; }
-    .provider-status { font-size: 12px; padding: 4px 10px; border-radius: 6px; }
+    .provider-right { text-align: right; display: flex; align-items: center; gap: 12px; }
+    .provider-meta { font-size: 12px; color: #555; text-align: right; }
+    .provider-meta span { display: block; }
+    .provider-status { font-size: 12px; padding: 4px 10px; border-radius: 6px; white-space: nowrap; }
     .provider-status.healthy { background: rgba(34,197,94,0.1); color: #22c55e; }
     .provider-status.disabled { background: rgba(102,102,102,0.1); color: #666; }
+    .provider-status.limited { background: rgba(245,158,11,0.1); color: #f59e0b; }
+    .provider-status.degraded { background: rgba(239,68,68,0.1); color: #ef4444; }
     .endpoint { padding: 16px 32px; }
     .endpoint-box { background: #111; border: 1px solid #1a1a1a; border-radius: 12px; padding: 16px 20px; font-family: monospace; font-size: 14px; color: #3b82f6; }
   </style>
@@ -76,7 +119,7 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
   </div>
 
   <div class="endpoint">
-    <div class="endpoint-box">Endpoint: http://localhost:${config.port || 3377}/v1/chat/completions</div>
+    <div class="endpoint-box">Endpoint: http://localhost:${GATEWAY_PORT}/v1/chat/completions</div>
   </div>
 
   <div class="stats" id="stats"></div>
@@ -91,25 +134,35 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
         const res = await fetch('/api/status');
         const providers = await res.json();
         const active = providers.filter(p => p.status === 'healthy');
+        const totalReqs = providers.reduce((s, p) => s + (p.requests || 0), 0);
+        const activeTimes = active.filter(p => p.avgResponseTime > 0).map(p => p.avgResponseTime);
+        const avgMs = activeTimes.length
+          ? Math.round(activeTimes.reduce((a, b) => a + b, 0) / activeTimes.length)
+          : 0;
 
         document.getElementById('stats').innerHTML =
           '<div class="stat"><div class="stat-label">Active Providers</div><div class="stat-value green">' + active.length + '</div></div>' +
           '<div class="stat"><div class="stat-label">Total Providers</div><div class="stat-value blue">' + providers.length + '</div></div>' +
-          '<div class="stat"><div class="stat-label">Est. Daily Tokens</div><div class="stat-value orange">5M+</div></div>' +
-          '<div class="stat"><div class="stat-label">Monthly Cost</div><div class="stat-value purple">$0</div></div>';
+          '<div class="stat"><div class="stat-label">Avg Response</div><div class="stat-value orange">' + (avgMs ? avgMs + 'ms' : '-') + '</div></div>' +
+          '<div class="stat"><div class="stat-label">Total Requests</div><div class="stat-value purple">' + totalReqs + '</div></div>';
 
-        document.getElementById('providers').innerHTML = providers.map(p =>
-          '<div class="provider">' +
+        document.getElementById('providers').innerHTML = providers.map(p => {
+          const meta = p.status !== 'disabled'
+            ? '<span>' + (p.avgResponseTime ? p.avgResponseTime + 'ms' : '-') + '</span>' +
+              '<span>' + (p.requests ? p.successRate + '% ok' : 'no requests') + '</span>'
+            : '';
+          return '<div class="provider">' +
             '<div class="provider-left">' +
               '<div class="provider-dot ' + p.status + '"></div>' +
               '<div><div class="provider-name">' + p.name + '</div>' +
               '<div class="provider-model">' + (p.models[0] || 'N/A') + '</div></div>' +
             '</div>' +
             '<div class="provider-right">' +
+              (meta ? '<div class="provider-meta">' + meta + '</div>' : '') +
               '<span class="provider-status ' + p.status + '">' + p.status + '</span>' +
             '</div>' +
-          '</div>'
-        ).join('');
+          '</div>';
+        }).join('');
       } catch (e) { console.error('Dashboard refresh failed:', e); }
     }
     refresh();
@@ -118,8 +171,16 @@ const DASHBOARD_HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
+server.on("error", (err) => {
+  if (err.code === "EADDRINUSE") {
+    console.error(`\n  Port ${PORT} is already in use. Is the dashboard already running?\n`);
+    process.exit(1);
+  }
+  throw err;
+});
+
 server.listen(PORT, () => {
-  console.log(\`[Dashboard] Running at http://localhost:\${PORT}\`);
+  console.log(`[Dashboard] Running at http://localhost:${PORT}`);
 });
 
 module.exports = { server };

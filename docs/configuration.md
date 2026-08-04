@@ -31,6 +31,9 @@ cp .env.example .env
 | `SAMBANOVA_API_KEY` | SambaNova | [cloud.sambanova.ai](https://cloud.sambanova.ai/) |
 | `HF_API_KEY` | HuggingFace | [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) |
 | `DEEPSEEK_API_KEY` | DeepSeek | [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) |
+| `CHUTES_API_KEY` | Chutes.ai | [chutes.ai](https://chutes.ai/) |
+| `QWEN_API_KEY` | Alibaba/Qwen | [dashscope.aliyuncs.com](https://dashscope.aliyuncs.com/) |
+| `OVHCLOUD_API_KEY` | OVHcloud | [endpoints.ai.cloud.ovh.net](https://endpoints.ai.cloud.ovh.net/) |
 
 You don't need all of them. Even 2-3 providers give you solid coverage with auto-fallback.
 

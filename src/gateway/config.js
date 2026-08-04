@@ -20,9 +20,9 @@ function loadDotEnv() {
 loadDotEnv();
 
 const DEFAULT_CONFIG = {
-  port: 3377,
-  dashboard_port: 3378,
-  strategy: "auto",
+  port: parseInt(process.env.PORT) || 3377,
+  dashboard_port: parseInt(process.env.DASHBOARD_PORT) || 3378,
+  strategy: process.env.STRATEGY || "auto",
   validation_models: 3,
   fallback_timeout: 5000,
   providers: {
@@ -122,6 +122,30 @@ const DEFAULT_CONFIG = {
       models: ["deepseek-chat"],
       priority: 12,
       rate_limit: { rpm: 30 },
+    },
+    chutes: {
+      enabled: true,
+      api_key: process.env.CHUTES_API_KEY || "",
+      base_url: "https://llm.chutes.ai/v1",
+      models: ["deepseek-ai/DeepSeek-R1"],
+      priority: 13,
+      rate_limit: { rpm: 20 },
+    },
+    qwen: {
+      enabled: true,
+      api_key: process.env.QWEN_API_KEY || "",
+      base_url: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+      models: ["qwen-plus"],
+      priority: 14,
+      rate_limit: { tpm: 1000000 },
+    },
+    ovhcloud: {
+      enabled: true,
+      api_key: process.env.OVHCLOUD_API_KEY || "",
+      base_url: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1",
+      models: ["Mistral-7B-Instruct-v0.2"],
+      priority: 15,
+      rate_limit: { rpm: 12 },
     },
   },
 };

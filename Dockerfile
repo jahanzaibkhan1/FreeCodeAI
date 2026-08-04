@@ -5,8 +5,8 @@ LABEL description="FreeCodeAI — Free AI coding gateway with auto-fallback"
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci --production 2>/dev/null || npm install --production
+COPY package.json ./
+RUN npm install --production
 
 COPY . .
 
