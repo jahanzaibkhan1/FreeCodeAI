@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/demo.gif" width="600" alt="FreeCodeAI Demo — showing auto-fallback in action"/>
+  <img src="docs/demo.gif" width="720" alt="FreeCodeAI demo — gateway startup, auto-fallback, and code validation"/>
 </p>
 
 ---
