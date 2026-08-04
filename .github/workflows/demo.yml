@@ -10,6 +10,9 @@ on:
 jobs:
   vhs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -17,12 +20,26 @@ jobs:
         with:
           node-version: 20
 
-      # Make node available to VHS's shell environment
-      - run: echo "$(dirname $(which node))" >> $GITHUB_PATH
+      - name: Install VHS dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          # ttyd — VHS needs this to render the terminal
+          wget -q "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" \
+               -O /usr/local/bin/ttyd
+          chmod +x /usr/local/bin/ttyd
+          ttyd --version
 
-      - uses: charmbracelet/vhs-action@v2
-        with:
-          path: docs/demo.tape
+      - name: Install VHS
+        run: |
+          VHS_URL=$(curl -s https://api.github.com/repos/charmbracelet/vhs/releases/latest \
+            | grep "browser_download_url.*Linux_x86_64.tar.gz" | head -1 | cut -d'"' -f4)
+          curl -sL "$VHS_URL" | tar xz vhs
+          sudo mv vhs /usr/local/bin/vhs
+          vhs --version
+
+      - name: Generate demo GIF
+        run: vhs docs/demo.tape
 
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
