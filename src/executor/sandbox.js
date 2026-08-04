@@ -1,5 +1,26 @@
 const vm = require("vm");
-const { spawn } = require("child_process");
+const { spawn, execSync } = require("child_process");
+const os = require("os");
+const path = require("path");
+
+// On Windows the App Execution Alias stub intercepts bare "python"/"python3"
+// before the real install. Resolve once at startup, skipping WindowsApps stubs.
+const PYTHON_CMD = (() => {
+  if (os.platform() !== "win32") return ["python3", "python"];
+  try {
+    const lines = execSync("where python", { encoding: "utf8", timeout: 3000 })
+      .split("\n").map((l) => l.trim()).filter(Boolean);
+    const real = lines.find((l) => !l.toLowerCase().includes("windowsapps"));
+    if (real) return [real];
+  } catch { /* where not found or python not on PATH */ }
+  // Fallback: check common install dirs
+  const lad = process.env.LOCALAPPDATA || "";
+  for (const ver of ["313", "312", "311", "310", "39"]) {
+    const p = path.join(lad, "Programs", "Python", `Python${ver}`, "python.exe");
+    try { execSync(`"${p}" --version`, { timeout: 2000 }); return [p]; } catch { /* skip */ }
+  }
+  return ["python"];
+})();
 
 const TIMEOUT_MS = 5000;
 
@@ -82,13 +103,17 @@ function runPython(code) {
         }
         proc.stdout.on("data", (d) => { stdout += d; });
         proc.stderr.on("data", (d) => { stderr += d; });
-        proc.on("close", (code) => res({ code, stdout: stdout.trim(), stderr: stderr.trim() }));
+        proc.on("close", (exitCode) => res({ code: exitCode, stdout: stdout.trim(), stderr: stderr.trim() }));
         proc.on("error", () => res(null));
       });
     }
 
     (async () => {
-      const r = (await trySpawn("python3")) || (await trySpawn("python"));
+      let r = null;
+      for (const cmd of PYTHON_CMD) {
+        r = await trySpawn(cmd);
+        if (r !== null) break;
+      }
       if (!r) {
         return resolve({
           ran: false, passed: false, stdout: "", stderr: "",
