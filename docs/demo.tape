@@ -4,7 +4,7 @@ Output docs/demo.gif
 # Install VHS: https://github.com/charmbracelet/vhs
 # On Windows: run in WSL or use GitHub Actions (see .github/workflows/demo.yml)
 
-Set Shell "bash"
+Set Shell bash
 Set FontSize 14
 Set Width 960
 Set Height 580

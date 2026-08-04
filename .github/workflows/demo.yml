@@ -17,6 +17,9 @@ jobs:
         with:
           node-version: 20
 
+      # Make node available to VHS's shell environment
+      - run: echo "$(dirname $(which node))" >> $GITHUB_PATH
+
       - uses: charmbracelet/vhs-action@v2
         with:
           path: docs/demo.tape
