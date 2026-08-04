@@ -4,6 +4,8 @@ const http = require("http");
 const { Router } = require("./router");
 const { ProviderPool } = require("../providers/pool");
 const { loadConfig } = require("./config");
+const { execute } = require("../executor/sandbox");
+const qualityStore = require("../executor/quality-store");
 
 const config = loadConfig();
 const pool = new ProviderPool(config.providers);
@@ -26,6 +28,12 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ status: "ok", providers: pool.getStatus() }));
   }
 
+  // Provider quality scores
+  if (req.url === "/api/quality") {
+    res.writeHead(200, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
+    return res.end(JSON.stringify(qualityStore.getAll()));
+  }
+
   // List models
   if (req.url === "/v1/models" && req.method === "GET") {
     res.writeHead(200, { "Content-Type": "application/json" });
@@ -44,21 +52,28 @@ const server = http.createServer(async (req, res) => {
         return res.end(JSON.stringify({ error: { message: "Invalid JSON body", type: "invalid_request_error" } }));
       }
 
-      // Add fallback headers to response
       const result = await router.route(parsed);
+
+      // Opt-in code execution: add execute:true to your request body
+      let execution = null;
+      if (parsed.execute === true && !result.stream) {
+        const content = result.data?.choices?.[0]?.message?.content || "";
+        execution = await execute(content);
+        qualityStore.record(result.provider, { executed: execution.ran, passed: execution.passed });
+        console.log(`[Executor] ${result.provider} | ${execution.language || "?"} | ${execution.passed ? "PASS" : "FAIL"} | ${execution.durationMs}ms`);
+      }
 
       res.writeHead(200, {
         "Content-Type": result.stream ? "text/event-stream" : "application/json",
         "X-FreeCodeAI-Provider": result.provider,
         "X-FreeCodeAI-Model": result.model,
         "X-FreeCodeAI-Fallbacks": result.attempts,
+        ...(execution ? { "X-FreeCodeAI-Execution": execution.passed ? "pass" : "fail" } : {}),
       });
 
       if (result.stream) {
-        // Stream SSE response; abort early if client disconnects
         let clientGone = false;
         req.on("close", () => { clientGone = true; });
-
         for await (const chunk of result.data) {
           if (clientGone) break;
           res.write(`data: ${JSON.stringify(chunk)}\n\n`);
@@ -68,7 +83,20 @@ const server = http.createServer(async (req, res) => {
           res.end();
         }
       } else {
-        res.end(JSON.stringify(result.data));
+        const body = execution
+          ? {
+              ...result.data,
+              _execution: {
+                ran: execution.ran,
+                passed: execution.passed,
+                language: execution.language,
+                durationMs: execution.durationMs,
+                stdout: execution.stdout || null,
+                error: execution.error || null,
+              },
+            }
+          : result.data;
+        res.end(JSON.stringify(body));
       }
     } catch (err) {
       console.error("[FreeCodeAI] Error:", err.message);
