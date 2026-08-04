@@ -30,7 +30,7 @@ const DEFAULT_CONFIG = {
       enabled: true,
       api_key: process.env.GEMINI_API_KEY || "",
       base_url: "https://generativelanguage.googleapis.com/v1beta/openai",
-      models: ["gemini-2.5-flash"],
+      models: ["gemini-2.0-flash"],
       priority: 1,
       rate_limit: { rpm: 15, rpd: 1500, tpm: 1000000 },
     },
